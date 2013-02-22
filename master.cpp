@@ -15,58 +15,76 @@
 	*/
 
 int main(int argc, char** argv){
-	part_one(argc, argv);
+	int randSeed; 			// optional, seeds random num generator, if not specified, generator supplied with time(NULL)
+	bool lock;     			// lock turns on semaphores, default is -nolock (w/out semaphors)
+	error_check_and_parse(argc, argv, &randSeed, &lock);
+	int nBuffers = atoi(argv[1]); 			// must be positive prime! 
+	int nWorkers = atoi(argv[2]); 			// number of child processes that exec worker, must be < nBuffers
+	int sleepMin = atoi(argv[3]); 			//
+	int sleepMax = atoi(argv[4]); 			// positive reals, max > min, define range of sleep times for worker processes
+	int rand_nums[nWorkers];
+	fill_rand_sorted_ints(rand_nums, nWorkers);
 }
 
-void part_one(int argc, char** argv){
-
-	error_check_input(argc, argv);
-
-	int out = dup(WRITE); 
+void fill_rand_sorted_ints(int *nums, int count){
 
 	// Create two pipes, pipe1 and pipe2
 	int pipe1[2]; int pipe2[2];
  	if( (pipe(pipe1)<0) || (pipe(pipe2)<0) ){ fprintf(stderr, "Could not create pipe!\n"); exit(0); }
 
-	// fork off a child 
-	int pid; 
-	if( (pid = fork()) < 0 ) { fprintf(stderr, "Could not fork child!\n"); exit(0); }
-
-	// close respective file descriptors and dup2 the pipe ends 
-	if( pid==0 ){  
-
+ 	switch(fork()){
+	case -1: 
+		fprintf(stderr, "Could not fork child!\n"); exit(0);
+	case CHILD:
 		// Set up pipes such that we read from the parent via pipe1 and write to the parent via pipe2
 		close(pipe1[WRITE]); close(pipe2[READ]);
-		dup2(pipe1[READ], READ); dup2(pipe2[WRITE], WRITE);
+		dup2(pipe1[READ], READ); // dup2(pipe2[WRITE], WRITE);
 		close(pipe1[READ]); close(pipe2[WRITE]);
 
 		// Child executes 'sort -nr' 
 		if(execlp( "sort", "sort", "-nr", NULL )){ 
-			fprintf(stderr, "Child should not have returned! Something went wrong in execvp\n"); exit(0); 
+			fprintf(stderr, "Child should not have returned! Something went wrong in execvp\n"); 
+			exit(0); 
+		}
+	default: 
+		FILE* to_sort = fdopen(pipe1[WRITE], "w");			// Open pipe for writing 
+		close(pipe1[READ]); close(pipe2[WRITE]);    // Close pipe1[write] to finish child process
+		for(int i=0; i < count; i++){
+			fprintf(to_sort, "%d\n", rand());
 		}
 
+		fclose(to_sort);
 	}
-
-	close(pipe1[READ]); close(pipe2[WRITE]);  // Close pipe1[write] to finish child process
-	dup2(pipe1[WRITE], WRITE); dup2(pipe2[READ], READ);
-	close(pipe1[WRITE]); close(pipe2[READ]);
-
-	for(int i=0; i < atoi(argv[2]); i++){
-		printf("%d\n", rand());
-	}
-
-    dup2(out, WRITE);
 
 }
 
-
-void error_check_input(int argc, char** argv){
+void error_check_and_parse(int argc, char** argv, int* randSeed, bool* lock ){
+	// Bounds checking 
 	if(argc > 7 || argc < 4){
 		printf("%s", "Usage: nBuffers nWorkers sleepMin sleepMax [randSeed] [-lock|-nolock]\n");
 		exit(0);
 	}
+	// Logic checking 
 	if(atoi(argv[3]) >= atoi(argv[4])){
 		printf("%s", "sleepMin must be strictly less than sleepMax\n");
 		exit(0);
+	}
+	// check for flag or randseed 
+	if(argc==6){
+		if(strcmp(argv[5], "-lock")==0)
+			*lock = true;
+		else if(strcmp(argv[5], "-nolock")==0)
+			*lock = false; 
+		else{
+			*randSeed = atoi(argv[5]);
+		}
+	} else if(argc==7){
+		if(strcmp(argv[6], "-lock")==0)
+			*lock = true;
+		else if(strcmp(argv[6], "-nolock")==0)
+			*lock = false; 
+		else {
+			fprintf(stderr, "Incorrect Input."); exit(0); 
+		}
 	}
 }

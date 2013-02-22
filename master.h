@@ -10,12 +10,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-void part_one(int argc, char** argv); 
+void error_check_and_parse(int argc, char** argv, int* randSeed, bool* lock );
 
-void error_check_input(int argc, char** input); 
+void fill_rand_sorted_ints(int *nums, int count);
     
 #define READ 0
 #define WRITE 1
+#define CHILD 0
 
 
 
