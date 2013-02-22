@@ -5,7 +5,6 @@
 #include "master.h"
 #include "helpers.h"
 
-void error_check_input(int argc, char** input); 
 
 /** command line args: nBuffers nWorkers sleepMin sleepMax [randSeed] [-lock | -nolock] 
 	nBuffers: must be positive prime! 
@@ -14,9 +13,16 @@ void error_check_input(int argc, char** input);
 	randSeed: optional, seeds random num generator, if not specified, generator supplied with time(NULL)
 	-lock/-nolock: lock turns on semaphores, default is -nolock (w/out semaphors)
 	*/
+
 int main(int argc, char** argv){
+	part_one(argc, argv);
+}
+
+void part_one(int argc, char** argv){
 
 	error_check_input(argc, argv);
+
+	int out = dup(WRITE); 
 
 	// Create two pipes, pipe1 and pipe2
 	int pipe1[2]; int pipe2[2];
@@ -42,44 +48,19 @@ int main(int argc, char** argv){
 	}
 
 	close(pipe1[READ]); close(pipe2[WRITE]);  // Close pipe1[write] to finish child process
+	dup2(pipe1[WRITE], WRITE); dup2(pipe2[READ], READ);
+	close(pipe1[WRITE]); close(pipe2[READ]);
 
-	int seed = (argv[5])? atoi(argv[5]):0;  // TODO: should set to time(NULL) instead of 0...? whatever that means
-	// Seed random number generator, srand()
-	srand(seed);
-
-	int out = dup(WRITE);
-	int i;
-	for(i=0; i < atoi(argv[2]); i++){
-		int rnd = rand();
-		int to_write = rnd;
-		printf("%d\n", rnd);
-		// Write to child (sort)
-		if(write(pipe1[WRITE], &to_write, sizeof(RAND_MAX))<0){fprintf(stderr, "Error in write");}
+	for(int i=0; i < atoi(argv[2]); i++){
+		printf("%d\n", rand());
 	}
-	close(pipe1[WRITE]);
 
-	// parent generates nWorkers (argv[2]) numbers between sleepMin/sleepMax
-
-	// print all numbers 
-
-	// passes them to the child 
-
-	// Close pipe ends when done writing to child 
-
-	// read back output from child (should be numbers in sorted order) and print 
+    dup2(out, WRITE);
 
 }
 
-/* For testing purposes */
-void print_char(char** x){
-  printf("%s", "NOW PRINTING CHARACTER ARRAY:") ;
-  for(int i = 0 ; x[i]; i++){
-    printf("%s\n", x[i]);
-  }
-}
 
 void error_check_input(int argc, char** argv){
-	printf("%d", argc);
 	if(argc > 7 || argc < 4){
 		printf("%s", "Usage: nBuffers nWorkers sleepMin sleepMax [randSeed] [-lock|-nolock]\n");
 		exit(0);

@@ -9,6 +9,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+void part_one(int argc, char** argv); 
+
+void error_check_input(int argc, char** input); 
     
 #define READ 0
 #define WRITE 1

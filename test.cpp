@@ -14,7 +14,7 @@ void error_check_input(int argc, char** input);
 	randSeed: optional, seeds random num generator, if not specified, generator supplied with time(NULL)
 	-lock/-nolock: lock turns on semaphores, default is -nolock (w/out semaphors)
 	*/
-int main(int argc, char** argv){
+void part_one(int argc, char** argv){
 
 	error_check_input(argc, argv);
 
@@ -52,6 +52,12 @@ int main(int argc, char** argv){
 	}
 
     dup2(out, WRITE);
+
+}
+
+int main(int argc, char** argv){
+
+	part_one(argc, argv);
 
 }
 
