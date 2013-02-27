@@ -17,15 +17,6 @@ bool built_in_command(char* input){
   return false;
 }
 
-char* read_line(char* prompt){
-  printf("%s",prompt);
-  static char* line = NULL;           // Needs to be freed in main!!
-  size_t s = 0;
-  getline(&line, &s, stdin);
-  line[ strlen(line) - 1 ] = '\0';    // get rid of pesky newline character
-  return line;
-}
-
 int launch_command(int in, int out, char** argv){
   /* Create the arg list for exec */
   dup2(in, IN);                       // Replace stdin with in

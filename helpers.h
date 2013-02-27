@@ -26,9 +26,6 @@ using namespace std;
 #define IN 0   // read end
 #define OUT 1  // write end
 
-/** Reads a line from stdin after printing out prompt, returns a char* of input line */
-char* read_line(char* prompt);
-
 /** Takes in an argument vector (array of char pointers) and execs argv[0] with arguments argv
  * Returns pid of forked proccess or -1 if failed 
  *   @param in: the file descriptor that the command should use as it's input

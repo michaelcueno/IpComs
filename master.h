@@ -3,7 +3,7 @@
   * Copyright: Michael Cueno @ 2013 (mcueno2)
   *   */
 #ifndef _MASTER_H
-#define _MASTER_M
+#define _MASTER_H
   
 #include <unistd.h>
 #include <stdio.h>
@@ -26,7 +26,10 @@ void error_check_and_parse(int argc, char** argv, int* randSeed, bool* lock );
 	process, the write end that feeds to the process is closed, thus allowing sort to fininish.
 	Sort then returns its results via the second pipe to the parent. */
 void fill_rand_sorted_ints(int *nums, int count, int randSeed);
-    
+   
+int create_message_queue(); 
+
+int* fork_workers();
 
 #endif 
     
