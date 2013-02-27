@@ -23,7 +23,9 @@ int main(int argc, char** argv){
 	int sleepMin = atoi(argv[3]); 			//
 	int sleepMax = atoi(argv[4]); 			// positive reals, max > min, define range of sleep times for worker processes
 	int rand_nums[nWorkers];
+
 	fill_rand_sorted_ints(rand_nums, nWorkers, randSeed);
+
 }
 
 void fill_rand_sorted_ints(int *nums, int count, int randSeed){
@@ -38,7 +40,7 @@ void fill_rand_sorted_ints(int *nums, int count, int randSeed){
 	case CHILD:
 		// Set up pipes such that we read from the parent via pipe1 and write to the parent via pipe2
 		close(pipe1[WRITE]); close(pipe2[READ]);
-		dup2(pipe1[READ], READ); 
+		dup2(pipe1[READ], READ); dup2(pipe2[WRITE], WRITE);
 		close(pipe1[READ]); close(pipe2[WRITE]);
 
 		if(execlp( "sort", "sort", "-nr", NULL )){ 			// Child executes 'sort -nr' 
@@ -52,8 +54,9 @@ void fill_rand_sorted_ints(int *nums, int count, int randSeed){
 		for(int i=0; i < count; i++){
 			fprintf(to_sort, "%d\n", rand());
 		}
-
 		fclose(to_sort);
+
+		
 	}
 
 }
@@ -92,3 +95,44 @@ void error_check_and_parse(int argc, char** argv, int* randSeed, bool* lock ){
 		}
 	}
 }
+
+int create_message_queue(){
+
+}
+
+int* fork_workers(){
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

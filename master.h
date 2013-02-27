@@ -27,6 +27,7 @@ void error_check_and_parse(int argc, char** argv, int* randSeed, bool* lock );
 	Sort then returns its results via the second pipe to the parent. */
 void fill_rand_sorted_ints(int *nums, int count, int randSeed);
    
+/** Instantiates a message queue and returns the message ID obtained from msgget() */
 int create_message_queue(); 
 
 int* fork_workers();
