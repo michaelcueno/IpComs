@@ -23,10 +23,10 @@ int main(int argc, char** argv){
 	int sleepMin = atoi(argv[3]); 			//
 	int sleepMax = atoi(argv[4]); 			// positive reals, max > min, define range of sleep times for worker processes
 	int rand_nums[nWorkers];
-	fill_rand_sorted_ints(rand_nums, nWorkers);
+	fill_rand_sorted_ints(rand_nums, nWorkers, randSeed);
 }
 
-void fill_rand_sorted_ints(int *nums, int count){
+void fill_rand_sorted_ints(int *nums, int count, int randSeed){
 
 	// Create two pipes, pipe1 and pipe2
 	int pipe1[2]; int pipe2[2];
@@ -38,17 +38,17 @@ void fill_rand_sorted_ints(int *nums, int count){
 	case CHILD:
 		// Set up pipes such that we read from the parent via pipe1 and write to the parent via pipe2
 		close(pipe1[WRITE]); close(pipe2[READ]);
-		dup2(pipe1[READ], READ); // dup2(pipe2[WRITE], WRITE);
+		dup2(pipe1[READ], READ); 
 		close(pipe1[READ]); close(pipe2[WRITE]);
 
-		// Child executes 'sort -nr' 
-		if(execlp( "sort", "sort", "-nr", NULL )){ 
+		if(execlp( "sort", "sort", "-nr", NULL )){ 			// Child executes 'sort -nr' 
 			fprintf(stderr, "Child should not have returned! Something went wrong in execvp\n"); 
 			exit(0); 
 		}
 	default: 
 		FILE* to_sort = fdopen(pipe1[WRITE], "w");			// Open pipe for writing 
-		close(pipe1[READ]); close(pipe2[WRITE]);    // Close pipe1[write] to finish child process
+		close(pipe1[READ]); close(pipe2[WRITE]);    		// Close pipe1[write] to finish child process
+		srand(randSeed); 									// Set random seed 
 		for(int i=0; i < count; i++){
 			fprintf(to_sort, "%d\n", rand());
 		}
@@ -59,6 +59,10 @@ void fill_rand_sorted_ints(int *nums, int count){
 }
 
 void error_check_and_parse(int argc, char** argv, int* randSeed, bool* lock ){
+	// Defaults 
+	*lock = false; 
+	*randSeed = time(NULL); 
+
 	// Bounds checking 
 	if(argc > 7 || argc < 4){
 		printf("%s", "Usage: nBuffers nWorkers sleepMin sleepMax [randSeed] [-lock|-nolock]\n");
@@ -73,10 +77,10 @@ void error_check_and_parse(int argc, char** argv, int* randSeed, bool* lock ){
 	if(argc==6){
 		if(strcmp(argv[5], "-lock")==0)
 			*lock = true;
-		else if(strcmp(argv[5], "-nolock")==0)
+		else if(strcmp(argv[5], "-nolock")==0)   // For completeness 
 			*lock = false; 
 		else{
-			*randSeed = atoi(argv[5]);
+			*randSeed = atoi(argv[5]); 			 // Doesn't check if argv[5] is numerical... Ok for now 
 		}
 	} else if(argc==7){
 		if(strcmp(argv[6], "-lock")==0)
