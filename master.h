@@ -34,7 +34,7 @@ void error_check_and_parse(int argc, char** argv, int* randSeed, bool* lock );
 	and passes them into the sort processes one by one. After all numbers are passed into the 
 	process, the write end that feeds to the process is closed, thus allowing sort to fininish.
 	Sort then returns its results via the second pipe to the parent. */
-void fill_rand_sorted_ints(int *nums, int count, int randSeed);
+void fill_rand_sorted_ints(int *nums, int count, int randSeed, int sleepMin, int sleepMax);
    
 /** Instantiates a message queue and returns the message ID obtained from msgget().
 	!Important: Must destroy_message_queue(msgID) for any message queue created with this 

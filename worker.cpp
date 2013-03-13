@@ -34,14 +34,12 @@ int main(int argc, char** argv){
 		fprintf(stderr, "shmat failed: %s", strerror(errno)); 
 	}
 
-	printf("Before loop\n", NULL);
 	// Begin read/write loop 
 	for(int i = 0; i < (3*nBuffers); i++){
 		offset = (offset + i) % nBuffers; 
 		// First read 
 		read1 = *(mem + offset);
 
-		printf("going to sleep for: \n", sleepTime);
 		usleep(sleepTime); 
 		printf("in loop\n", NULL);
 

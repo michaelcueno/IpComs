@@ -23,7 +23,7 @@ int main(int argc, char** argv){
 	int sleepTimes[nWorkers];
 	int* mem = NULL;			 			// Array of ints for shared memory 
 
-	fill_rand_sorted_ints(sleepTimes, nWorkers, randSeed);
+	fill_rand_sorted_ints(sleepTimes, nWorkers, randSeed, sleepMin, sleepMax);
 
 	int msgID = create_message_queue();
 
@@ -42,7 +42,7 @@ int main(int argc, char** argv){
 	clean_up(msgID, shmID); 
 }
 	
-void fill_rand_sorted_ints(int *nums, int count, int randSeed){
+void fill_rand_sorted_ints(int *nums, int count, int randSeed, int sleepMin, int sleepMax){
 	// Create two pipes, pipe1 and pipe2
 	int pipe1[2]; int pipe2[2];
  	if( (pipe(pipe1)<0) || (pipe(pipe2)<0) ){ fprintf(stderr, "Could not create pipe!\n"); exit(0); }
@@ -53,7 +53,7 @@ void fill_rand_sorted_ints(int *nums, int count, int randSeed){
 	case CHILD:
 		// Set up pipes such that we read from the parent via pipe1 and write to the parent via pipe2
 		close(pipe1[WRITE]); close(pipe2[READ]);
-		dup2(pipe1[READ], READ); dup2(pipe2[WRITE], WRITE);
+		dup2(pipe1[READ], READ); //dup2(pipe2[WRITE], WRITE);
 		close(pipe1[READ]); close(pipe2[WRITE]);
 
 		if(execlp( "sort", "sort", "-nr", NULL )){ 			// Child executes 'sort -nr' 
@@ -66,7 +66,9 @@ void fill_rand_sorted_ints(int *nums, int count, int randSeed){
 		close(pipe1[READ]); close(pipe2[WRITE]);    		// Close pipe1[write] to finish child process
 		srand(randSeed); 									// Set random seed 
 		for(int i=0; i < count; i++){
-			fprintf(to_sort, "%d\n", rand());
+			int num = (sleepMax - sleepMin + 1)*((double)rand()/RAND_MAX) + sleepMin;
+			num = 
+			fprintf(to_sort, "%d\n", num);
 		}
 		fclose(to_sort);
 
@@ -161,9 +163,9 @@ void clean_up(int msgID, int shmID){
 	}
 }
 
-void fork_workers(int* pids, int nBuffers, int count, int* sleepTime, int msgID, int shmID, int semID){
+void fork_workers(int* pids, int nBuffers, int count, int* sleepTimes, int msgID, int shmID, int semID){
 	for(int i = 0; i < count; i++){
-		pids[i] = launch_worker(i+1, nBuffers, sleepTime[i], msgID, shmID, semID);
+		pids[i] = launch_worker(i+1, nBuffers, sleepTimes[i], msgID, shmID, semID);
 	}
 }
 
