@@ -163,8 +163,8 @@ void clean_up(int msgID, int shmID){
 }
 
 void fork_workers(int* pids, int nBuffers, int count, int* sleepTime, int msgID, int shmID, int semID){
-	for(int i = 1; i < count+1; i++){
-		pids[i] = launch_worker(i, nBuffers, sleepTime[i], msgID, shmID, semID);
+	for(int i = 0; i < count; i++){
+		pids[i] = launch_worker(i+1, nBuffers, sleepTime[i], msgID, shmID, semID);
 	}
 }
 
