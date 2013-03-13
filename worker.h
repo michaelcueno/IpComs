@@ -22,5 +22,7 @@ void parse_input(int argc, char** argv, int* workerId, int* nBuffers, int* sleep
 /** Sends a message (contained in buf) to the message queue pointed at by msgID */
 bool write_to_msg(int msgID, char* buf); 
 
+void error_check(int first, int second, int msgID); 
+
 #endif 
     
