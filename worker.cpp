@@ -14,12 +14,13 @@ int main(int argc, char** argv){
 	// Variables 
 	int read1;
 	int read2; 
+	int read3; 
 
 	// Initializations 
 	int workerID; int nBuffers; int sleepTime; int msgID; int shmID; int semID;
 	parse_input(argc, argv, &workerID, &nBuffers, &sleepTime, &msgID, &shmID, &semID);
-	int offset = sizeof(int)*(workerID-1);
 	int signature = 1 << (workerID-1);
+	int offset; 
 
 	// Part two 
 	char content[CONT_MAX];
@@ -34,25 +35,27 @@ int main(int argc, char** argv){
 		fprintf(stderr, "shmat failed: %s", strerror(errno)); 
 	}
 
+
 	// Begin read/write loop 
 	for(int i = 0; i < (3*nBuffers); i++){
-		offset = (offset + i) % nBuffers; 
-		// First read 
-		read1 = *(mem + offset);
+		offset = (i * workerID) % nBuffers; 
 
-		usleep(sleepTime); 
-
-		// Second Read
-		read2 = *(mem + offset);
-
-		error_check(read1, read2, msgID);
-
-		// write operation 
-		read1 = *(mem + offset); 
-		*(mem + offset) = read1 + signature; 
+		if(i%3==0 || i%3==1){     // First and second read operation 
+			read1 = *(mem + offset);
+			usleep(sleepTime); 
+			read2 = *(mem + offset);
+			// Error Check 
+			if(read1 != read2){
+				char buf[CONT_MAX]; 
+				sprintf(buf, "RACE COND ERROR: Worker %d in buffer %d. initial: %d final: %d", workerID, offset, read1, read2);
+				write_to_msg(msgID, buf); 
+			}
+		}else{						// Write operation 
+			read3 = *(mem + offset); 
+			*(mem + offset) = read1 + signature; 
+			printf("read3: %d, sig: %d at buf: %d\n", read3, signature, offset);
+		}
 	}
-	printf("After loop\n", NULL);
-
 
 	// Send finished messege
 	sprintf(content, "Worker %d done", workerID);
@@ -86,12 +89,5 @@ bool write_to_msg(int msgID, char* buf){
 	} 
 }
 
-void error_check(int first, int second, int msgID){
-
-	if(first != second){
-		printf("Fucking we got a problem over here billy\n", NULL);
-	}
-
-}
 
 

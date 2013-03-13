@@ -30,6 +30,8 @@ int main(int argc, char** argv){
 	int shmID = create_shared_memory(nBuffers);
 	init_shared_memory(&mem, shmID, nBuffers);
 
+	print_memory(mem, nBuffers);
+	
 	int pids[nWorkers];
 	fork_workers(pids, nBuffers, nWorkers, sleepTimes, msgID, shmID, 0); 
 
@@ -66,7 +68,7 @@ void fill_rand_sorted_ints(int *nums, int count, int randSeed, int sleepMin, int
 		close(pipe1[READ]); close(pipe2[WRITE]);    		// Close pipe1[write] to finish child process
 		srand(randSeed); 									// Set random seed 
 		for(int i=0; i < count; i++){
-			int num = (sleepMax - sleepMin + 1)*((double)rand()/RAND_MAX) + sleepMin;
+			int num = (int)(sleepMax - sleepMin + 1)*((double)rand()/RAND_MAX) + sleepMin;
 			num = 
 			fprintf(to_sort, "%d\n", num);
 		}
@@ -147,7 +149,7 @@ void init_shared_memory(int** mem, int shmID, int nBuffers){
 	/** Initialize the buf to zeros. This for loop works by using pointer arithmetic to 
 		loop through and initialize the buffer */
 	for(int i = 0; i < nBuffers; i++){
-		* (*mem + (sizeof(int)*i)) = 0; 
+		* (*mem + i) = 0; 
 	}
 }
 
@@ -223,9 +225,7 @@ void print_char(char** x){
 void print_memory(int* mem, int nBuffers){
 	for(int i=0; i < nBuffers; i++){
 		printf("Buffer %d: ", i, NULL);
-		for(int j=0; j<sizeof(int); j++){
-			printf("%d", mem[j + (i*sizeof(int))]);
-		}
+		printf("%d", mem[i]);
 		printf("\n", NULL);
 	}
 }
