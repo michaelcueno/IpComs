@@ -53,7 +53,7 @@ void fill_rand_sorted_ints(int *nums, int count, int randSeed, int sleepMin, int
 	case CHILD:
 		// Set up pipes such that we read from the parent via pipe1 and write to the parent via pipe2
 		close(pipe1[WRITE]); close(pipe2[READ]);
-		dup2(pipe1[READ], READ); //dup2(pipe2[WRITE], WRITE);
+		dup2(pipe1[READ], READ); dup2(pipe2[WRITE], WRITE);
 		close(pipe1[READ]); close(pipe2[WRITE]);
 
 		if(execlp( "sort", "sort", "-nr", NULL )){ 			// Child executes 'sort -nr' 

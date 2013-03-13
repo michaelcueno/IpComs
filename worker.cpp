@@ -41,7 +41,6 @@ int main(int argc, char** argv){
 		read1 = *(mem + offset);
 
 		usleep(sleepTime); 
-		printf("in loop\n", NULL);
 
 		// Second Read
 		read2 = *(mem + offset);
