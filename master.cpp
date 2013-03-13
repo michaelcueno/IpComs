@@ -22,6 +22,39 @@ int main(int argc, char** argv){
 	int sleepMax = atoi(argv[4]); 			// positive reals, max > min, define range of sleep times for worker processes
 	int sleepTimes[nWorkers];
 	int* mem = NULL;			 			// Array of ints for shared memory 
+	int semID;								// Will hold the id of the allocated semaphore set
+	unsigned short int sem_array[nBuffers]; // For setting the semaphores to 1 
+
+	// Init semaphores 
+	if(lock){
+		if((semID = semget(IPC_PRIVATE, nBuffers, IPC_CREAT | 0660 ))<0){
+			fprintf(stderr, "Could not allocate semaphores: %s", strerror( errno ));
+		}
+		
+		// Init to 1's
+		semun init_arr;
+		for(int i=0; i<nBuffers; i++){
+			sem_array[i] = 1;
+		}
+		init_arr.array = sem_array;
+
+		// Set kernal data 
+		if(semctl(semID, 0, SETALL, init_arr)<0){
+			fprintf(stderr, "Error with semaphores set: %s\n", strerror( errno ));
+		}
+
+		// Print info about sems
+		semun stats;
+		if(semctl(semID, 0, IPC_STAT, stats)<0){
+			fprintf(stderr, "Error with semaphores stats: %s\n", strerror( errno ));
+		}
+		
+		for(int i =0;i<nBuffers;i++){
+			printf("Semaphore %d: ", i);
+			//printf("Seq Num: %d ", stats.buf[i].sem_perm.__seq);
+			printf("\n",NULL);
+		}
+	}
 
 	fill_rand_sorted_ints(sleepTimes, nWorkers, randSeed, sleepMin, sleepMax);
 
@@ -30,8 +63,6 @@ int main(int argc, char** argv){
 	int shmID = create_shared_memory(nBuffers);
 	init_shared_memory(&mem, shmID, nBuffers);
 
-	print_memory(mem, nBuffers);
-	
 	int pids[nWorkers];
 	fork_workers(pids, nBuffers, nWorkers, sleepTimes, msgID, shmID, 0); 
 
@@ -41,7 +72,7 @@ int main(int argc, char** argv){
 
 	print_memory(mem, nBuffers);
 
-	clean_up(msgID, shmID); 
+	clean_up(msgID, shmID, semID, lock); 
 }
 	
 void fill_rand_sorted_ints(int *nums, int count, int randSeed, int sleepMin, int sleepMax){
@@ -123,7 +154,7 @@ void error_check_and_parse(int argc, char** argv, int* randSeed, bool* lock ){
 }
 
 int create_message_queue(){
-	int id = msgget( IPC_PRIVATE, 0600 | IPC_CREAT);
+	int id = msgget( IPC_PRIVATE, IPC_CREAT | 0600);
 	if(id<0){
 		fprintf(stderr, "Could not create message queue! %s\n", strerror( errno )); exit(0);
 	}
@@ -153,16 +184,23 @@ void init_shared_memory(int** mem, int shmID, int nBuffers){
 	}
 }
 
-void clean_up(int msgID, int shmID){
+void clean_up(int msgID, int shmID, int semID, bool lock){
 	struct msqid_ds info;
 	if(msgctl(msgID, IPC_RMID, &info)<0){
 		fprintf(stderr, "Could not remove msg %d. errno: %s\n", msgID, strerror( errno )); 
 		exit(-2); 
 	}
 	if(shmctl(shmID, IPC_RMID, NULL)){
-		fprintf(stderr, "Could not remove msg %d. errno: %s\n", msgID, strerror( errno )); 
+		fprintf(stderr, "Could not remove shared mem %d. errno: %s\n", shmID, strerror( errno )); 
 		exit(-3); 
 	}
+	if(lock){
+		if(semctl(semID, IPC_RMID, 0)){
+			fprintf(stderr, "Could not remove semaphores %d. errno: %s\n", semID, strerror( errno )); 
+			exit(-3); 
+		}
+	}
+	exit(0);
 }
 
 void fork_workers(int* pids, int nBuffers, int count, int* sleepTimes, int msgID, int shmID, int semID){
@@ -172,6 +210,7 @@ void fork_workers(int* pids, int nBuffers, int count, int* sleepTimes, int msgID
 }
 
 void read_message(int msgID, int n){
+	printf("Parent's message queue:\n", NULL);
 	struct msgcontent msgp;
 	size_t size = sizeof(struct msgcontent); 
 	long int type = 0;
@@ -180,7 +219,7 @@ void read_message(int msgID, int n){
 			perror("Couldn't read message: ");
 			exit(-1); 
 		}
-		printf("Parent got: %s\n", msgp.content);
+		printf("  %s\n", msgp.content);
 	}
 }
 

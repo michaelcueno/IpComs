@@ -50,7 +50,7 @@ int create_shared_memory(int size);
 void init_shared_memory(int** ptr, int shmid, int nBuffers); 
 
 /* Destroys the message queue identified by @param msgID. If error, it reports and exits */
-void clean_up(int msgID, int shmID); 
+void clean_up(int msgID, int shmID, int semID, bool lock); 
 
 /* Creates the child processes and fucks everything up */
 void fork_workers(int* pids, int nBuffers, int count, int* sleepTime, int msgID, int shmID, int semID);
