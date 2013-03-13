@@ -9,13 +9,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/msg.h>
+#include <sys/shm.h>
+#include <errno.h>
+#include <sys/ipc.h>
+#include <sys/types.h>
+#include "globals.h"
 
-/* Readability Defines */
-#define READ 0
-#define WRITE 1
-#define CHILD 0
+/** Sets variables and checks for errors in input */
+void parse_input(int argc, char** argv, int* workerId, int* nBuffers, int* sleepTime, int* msgID, int* shmID, int* semID);
 
-void parse_input(int argc, char** argv, int* workerId, int* sleepTime, int* msgID, int* shmID, int* semID);
+/** Sends a message (contained in buf) to the message queue pointed at by msgID */
+bool write_to_msg(int msgID, char* buf); 
 
 #endif 
     

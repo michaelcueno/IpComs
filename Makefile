@@ -13,21 +13,24 @@ MASTER=master
 
 WORKER=worker
 
-WOBJECTS=worker.o helpers.o
+WOBJECTS=worker.o 
 
-MOBJECTS=master.o helpers.o
+MOBJECTS=master.o
 
-WSOURCES=worker.cpp helpers.cpp
+WSOURCES=worker.cpp 
 
-MSOURCES=master.cpp helpers.cpp 
+MSOURCES=master.cpp
 
-all: $(MASTER) $(WORKER)
+all: $(MASTER) $(WORKER) globals.h
 
 $(MASTER): $(MOBJECTS)
 	$(CC) $(CFLAGS) -o $(MASTER) $(MOBJECTS) $(LIBRARIES)
 
 $(WORKER): $(WOBJECTS)
 	$(CC) $(CFLAGS) -o $(WORKER) $(WOBJECTS) $(LIBRARIES)
+
+update: clean
+	$(CP) * 
 
 clean:
 	$(RM) $(MASTER) $(WORKER) $(MOBJECTS) $(WOBJECTS) 
