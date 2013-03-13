@@ -35,7 +35,7 @@ int main(int argc, char** argv){
 
 	wait_for(pids, nWorkers); 
 
-	read_message(msgID, nWorkers);
+	read_message(msgID, nWorkers*2);
 
 	print_memory(mem, nBuffers);
 
@@ -148,7 +148,6 @@ void init_shared_memory(int** mem, int shmID, int nBuffers){
 		* (*mem + (sizeof(int)*i)) = 0; 
 	}
 }
-
 
 void clean_up(int msgID, int shmID){
 	struct msqid_ds info;

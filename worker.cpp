@@ -30,11 +30,12 @@ int main(int argc, char** argv){
 		fprintf(stderr, "shmat failed: %s", strerror(errno)); 
 	}
 
-	* (mem + (sizeof(int)*workerID)) = workerID; 
+	* (mem + (sizeof(int)*workerID-1)) = workerID; 
 
 	// Send finished messege
 	sprintf(content, "Worker %d done", workerID);
 	write_to_msg(msgID, content);
+	return 0;
 }
 
 void parse_input(int argc, char** argv, int* workerId, int* nBuffers, int* sleepTime, int* msgID, int* shmID, int* semID){
