@@ -117,8 +117,8 @@ void error_check(int read1, int read2, int msgID, int offset, int workerID){
 			if(j!=0)result = result >> 1;	// Shift over (Get next worker) (Dont shift if this is the first iteration)
 			is_offender = mask & result; 	// Lets get the lsb
 			if(is_offender){
-				sprintf(buf, "RACE COND READ ERROR: Worker %d in buffer %d. initial: %d final: %d corrupted by: %d",
-														 workerID,    offset,       read1,    read2,    		 j);
+				sprintf(buf, "RACE COND READ ERROR: Worker %d in buffer %d. initial: %d | final: %d | corrupted by worker %d",
+														 workerID,    offset,       read1,    read2,    	    j+1);
 				write_to_msg(msgID, buf);	 
 			}
 			j++;

@@ -17,7 +17,7 @@
 	*/
 
 int main(int argc, char** argv){
-	printf("Homework 2 by Michael Cueno UID: 676808583 contact: mcueno2@uic.edu\n");
+	printf("\n::::: Homework 2 by Michael Cueno UID: 676808583 contact: mcueno2@uic.edu ::::::\n");
 	int randSeed; 			// optional, seeds random num generator, if not specified, generator supplied with time(NULL)
 	bool lock;     							// lock turns on semaphores, default is -nolock (w/out semaphors)
 	error_check_and_parse(argc, argv, &randSeed, &lock);
@@ -52,6 +52,8 @@ int main(int argc, char** argv){
 	wait_for(pids, nWorkers); 
 
 	read_messages(msgID);
+
+	print_memory(mem, nBuffers);
 
 	inspect_memory(mem, nBuffers, nWorkers); 
 
@@ -216,7 +218,7 @@ void fork_workers(int* pids, int nBuffers, int count, int* sleepTimes, int msgID
 }
 
 void read_messages(int msgID){
-	printf("Parent's message queue:\n", NULL);
+	printf("\nParent's Message Queue:\n\n", NULL);
 	struct msqid_ds stats; 								// For getting information about message queue
 	struct msgcontent msgp;								// Buffer for recieving message 
 	size_t size = sizeof(struct msgcontent); 
@@ -268,26 +270,29 @@ void wait_for(int* pid, int count){
 }
 
 void print_memory(int* mem, int nBuffers){
+	printf("\nShared Memory Buffer Contents:\n\n");
+	printf("\tBUFFER #\tCONTENTS\n\t------------------------\n");
 	for(int i=0; i < nBuffers; i++){
-		printf("Buffer %d: ", i, NULL);
-		printf("%d", mem[i]);
+		printf("\tBuffer %d: ", i, NULL);
+		printf("\t%d", mem[i]);
 		printf("\n", NULL);
 	}
+	printf("\n");
 }
 
 void inspect_memory(int* mem, int nBuffers, int nWorkers){
+	printf("Race Conditions with regards to write operations:\n\n");
 	int expected = ~(-1 << nWorkers);		// Expected value of each memory buffer 
 	int result; 							// Will hold the bitwise difference 
 	int	mask = 1;			 				// For getting the least significant bit
 	int is_offender; 						// For determining what worker messed with the buffer in a race condition
-	int errors; 							// Keep track of how many write errors occured 
+	int errors = 0;							// Keep track of how many write errors occured 
 
-	print_memory(mem, nBuffers);
 	for(int i = 0; i < nBuffers; i++){		// For each buffer 
 		result = *(mem + i) ^ expected; 	// Bitwise or 
 		if(result != 0){					// If result == 0 then buffer had no write errors 
 			errors++; 
-			fprintf(stderr, "WRITE RACE COND ERROR! In buffer %d, these worker's writes overwritten: ", i);
+			fprintf(stderr, " In buffer %d, these worker's writes overwritten: ", i);
 			for(int j=0; j<nWorkers; j++){		// For each worker ..
 				if(j!=0)result = result >> 1;	// Shift over (Get next worker) (Dont shift if this is the first iteration)
 				is_offender = mask & result; 	// Lets get the lsb
@@ -299,5 +304,5 @@ void inspect_memory(int* mem, int nBuffers, int nWorkers){
 			fprintf(stderr, "\n");
 		}
 	}
-	printf("%d write errors\n", errors);
+	printf("\n TOTAL WRITE ERRORS: %d \n\n", errors);
 }
