@@ -21,6 +21,14 @@ int main(int argc, char** argv){
 	parse_input(argc, argv, &workerID, &nBuffers, &sleepTime, &msgID, &shmID, &semID);
 	int signature = 1 << (workerID-1);
 	int offset; 
+	struct sembuf wait, signal;										// Semaphore operation buffer
+	wait.sem_num = 0;      // This will be set to the current buffer (0 - nBuffers) 
+	wait.sem_op = -1;      // Wait until sem_value == 1 (if sem_value == 0 then we wait)
+	wait.sem_flg = 0;
+
+	signal.sem_num = 0;    
+	signal.sem_op = 1;    // Increment sem_value by 1
+	signal.sem_flg = 0;
 
 	// Part two 
 	char content[CONT_MAX];
@@ -37,7 +45,17 @@ int main(int argc, char** argv){
 
 	// Begin read/write loop 
 	for(int i = 0; i < (3*nBuffers); i++){
-		offset = (i * workerID) % nBuffers; 
+		// Get the buffer offset for accessing the shared memory segment
+		offset = (i * workerID) % nBuffers;   // offset could be named buffer_number
+
+		if(semID != -1){
+			struct semid_ds stats;
+			semctl(semID, offset, IPC_STAT, stats );
+			int sem_val = semctl(semID, offset, GETVAL, 0);
+//			printf("Sem %d: waiting | val: %d | last semop: %ld | last change: %ld\n", offset, sem_val, stats.sem_otime, stats.sem_ctime);
+			wait.sem_num = offset; 
+			semop(semID, &wait, 1); 
+		}
 
 		if(i%3==0 || i%3==1){     // First and second read operation 
 			read1 = *(mem + offset);
@@ -46,13 +64,21 @@ int main(int argc, char** argv){
 			// Error Check 
 			if(read1 != read2){
 				char buf[CONT_MAX]; 
-				sprintf(buf, "RACE COND ERROR: Worker %d in buffer %d. initial: %d final: %d", workerID, offset, read1, read2);
+				sprintf(buf, "RACE COND READ ERROR: Worker %d in buffer %d. initial: %d final: %d", workerID, offset, read1, read2);
 				write_to_msg(msgID, buf); 
 			}
 		}else{						// Write operation 
 			read3 = *(mem + offset); 
 			usleep(sleepTime);
 			*(mem + offset) = read3 + signature; 
+		}
+		if(semID != -1){
+			signal.sem_num = offset;
+			semop(semID, &signal, 1); 
+			struct semid_ds stats;
+			semctl(semID, offset, IPC_STAT, stats );
+			int sem_val = semctl(semID, offset, GETVAL);
+//			printf("Sem %d: Released | val: %d | last semop: %ld | last change: %ld\n", offset, sem_val, stats.sem_otime, stats.sem_ctime);
 		}
 	}
 
@@ -87,6 +113,3 @@ bool write_to_msg(int msgID, char* buf){
 		exit(-1); 
 	} 
 }
-
-
-

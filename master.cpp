@@ -13,6 +13,7 @@
 	*/
 
 int main(int argc, char** argv){
+	printf("Homework 2 by Michael Cueno UID: 676808583 contact: mcueno2@uic.edu\n");
 	int randSeed; 			// optional, seeds random num generator, if not specified, generator supplied with time(NULL)
 	bool lock;     							// lock turns on semaphores, default is -nolock (w/out semaphors)
 	error_check_and_parse(argc, argv, &randSeed, &lock);
@@ -22,8 +23,15 @@ int main(int argc, char** argv){
 	int sleepMax = atoi(argv[4]); 			// positive reals, max > min, define range of sleep times for worker processes
 	int sleepTimes[nWorkers];
 	int* mem = NULL;			 			// Array of ints for shared memory 
-	int semID;								// Will hold the id of the allocated semaphore set
+	int semID = -1;							// Will hold the id of the allocated semaphore set. Init to -1 to indicate -nolock for worker 
 	unsigned short int sem_array[nBuffers]; // For setting the semaphores to 1 
+	int sem_value; 
+
+	// nWorkers < nBuffers check
+	if(nWorkers >= nBuffers){
+		fprintf(stderr, "nWokers must be strictly less than nBuffers!\n");
+		exit(-1);
+	}
 
 	// Init semaphores 
 	if(lock){
@@ -43,17 +51,12 @@ int main(int argc, char** argv){
 			fprintf(stderr, "Error with semaphores set: %s\n", strerror( errno ));
 		}
 
-		// Print info about sems
+		/* Print info about sems
 		semun stats;
 		if(semctl(semID, 0, IPC_STAT, stats)<0){
 			fprintf(stderr, "Error with semaphores stats: %s\n", strerror( errno ));
-		}
+		}*/
 		
-		for(int i =0;i<nBuffers;i++){
-			printf("Semaphore %d: ", i);
-			//printf("Seq Num: %d ", stats.buf[i].sem_perm.__seq);
-			printf("\n",NULL);
-		}
 	}
 
 	fill_rand_sorted_ints(sleepTimes, nWorkers, randSeed, sleepMin, sleepMax);
@@ -64,13 +67,13 @@ int main(int argc, char** argv){
 	init_shared_memory(&mem, shmID, nBuffers);
 
 	int pids[nWorkers];
-	fork_workers(pids, nBuffers, nWorkers, sleepTimes, msgID, shmID, 0); 
+	fork_workers(pids, nBuffers, nWorkers, sleepTimes, msgID, shmID, semID); 
 
 	wait_for(pids, nWorkers); 
 
-	read_message(msgID, nWorkers*2);
+	read_messages(msgID);
 
-	print_memory(mem, nBuffers);
+	inspect_memory(mem, nBuffers, nWorkers); 
 
 	clean_up(msgID, shmID, semID, lock); 
 }
@@ -209,13 +212,21 @@ void fork_workers(int* pids, int nBuffers, int count, int* sleepTimes, int msgID
 	}
 }
 
-void read_message(int msgID, int n){
+void read_messages(int msgID){
 	printf("Parent's message queue:\n", NULL);
-	struct msgcontent msgp;
+	struct msqid_ds stats; 								// For getting information about message queue
+	struct msgcontent msgp;								// Buffer for recieving message 
 	size_t size = sizeof(struct msgcontent); 
-	long int type = 0;
-	for(int i =0; i<n; i++){
-		if(msgrcv(msgID, &msgp, size, type, IPC_NOWAIT)<0){
+	int count; 											// Number of messages in the queue
+
+	if(msgctl(msgID, IPC_STAT, &stats)<0){
+		perror("couldn't get message stats: ");
+		exit(-1);
+	}
+	count = stats.msg_qnum;
+
+	for(int i =0; i<count; i++){
+		if(msgrcv(msgID, &msgp, size, 0, IPC_NOWAIT)<0){
 			perror("Couldn't read message: ");
 			exit(-1); 
 		}
@@ -253,18 +264,37 @@ void wait_for(int* pid, int count){
   }
 }
 
-/* For testing purposes */
-void print_char(char** x){
-	printf("Now printing char array.. \n", NULL);
-    for(int i = 0 ; x[i]; i++){
-	    printf("Buffer %d: %s", i, x[i]);
-  }
-}
-
 void print_memory(int* mem, int nBuffers){
 	for(int i=0; i < nBuffers; i++){
 		printf("Buffer %d: ", i, NULL);
 		printf("%d", mem[i]);
 		printf("\n", NULL);
 	}
+}
+
+void inspect_memory(int* mem, int nBuffers, int nWorkers){
+	int expected = ~(-1 << nWorkers);		// Expected value of each memory buffer 
+	int result; 							// Will hold the bitwise difference 
+	int	mask = 1;			 				// For getting the least significant bit
+	int is_offender; 						// For determining what worker messed with the buffer in a race condition
+	int errors; 							// Keep track of how many write errors occured 
+
+	print_memory(mem, nBuffers);
+	for(int i = 0; i < nBuffers; i++){		// For each buffer 
+		result = *(mem + i) ^ expected; 	// Bitwise or 
+		if(result != 0){					// If result == 0 then buffer had no write errors 
+			errors++; 
+			fprintf(stderr, "WRITE RACE COND ERROR! In buffer %d, these worker's writes overwritten: ", i);
+			for(int j=0; j<nWorkers; j++){		// For each worker ..
+				if(j!=0)result = result >> 1;	// Shift over (Get next worker) (Dont shift if this is the first iteration)
+				is_offender = mask & result; 	// Lets get the lsb
+				//printf("\nresult: %d is_offender: %d\n", result, is_offender);
+				if(is_offender){
+					fprintf(stderr, "%d ", j+1);
+				}
+			}
+			fprintf(stderr, "\n");
+		}
+	}
+	printf("%d write errors\n", errors);
 }

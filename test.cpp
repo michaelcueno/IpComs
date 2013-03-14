@@ -1,30 +1,18 @@
-/** 
-  * Master delcarations file 
-  * Copyright: Michael Cueno @ 2013 (mcueno)
-  */
+#include <iostream>
+using namespace std;
+int main(){
+	int a = 23; 
+	cout << a << endl;
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <limits.h>
-         #include <sys/types.h>
-       #include <sys/ipc.h>
-       #include <sys/msg.h>
-  #include <stdio.h>
-#include <fcntl.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <string.h>
-
-
-int main(int argc, char** argv){
-	
-
-	int id = msgget( IPC_PRIVATE, IPC_CREAT);
-		if(id<0){
-			fprintf(stderr, "Could not create message queue! %s\n", strerror( errno )); exit(0);
+	int result = a ^ 31;
+	cout << result << endl; 
+	int is;
+	for(int i = 0 ; i < 5; i++){
+		result = result >> i; 
+		cout << "result" << result << endl;
+		is = result & 1;
+		if(is){
+			cout << "place: " << i+1 << endl;
 		}
-
-    printf("%d\n", id);
-
+	}
 }
-

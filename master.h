@@ -56,7 +56,7 @@ void clean_up(int msgID, int shmID, int semID, bool lock);
 void fork_workers(int* pids, int nBuffers, int count, int* sleepTime, int msgID, int shmID, int semID);
 
 /* Reads messages from @param msgID */
-void read_message(int msgID, int n);
+void read_messages(int msgID);
 
 /** Takes in an argument vector (array of char pointers) and execs argv[0] with arguments argv
  * Returns pid of forked proccess or -1 if failed 
@@ -70,7 +70,12 @@ void wait_for(int* pid, int count);
 /* Helper test method for printing the arg array */
 void print_char(char** x);
 
+/* Runs through shared memory pointed to by mem, and prints out contents upto nBuffers
+	(treats memory as ints) */
 void print_memory(int* mem, int nBuffers);
+
+/* Checks memory for errors and reports offenders */
+void inspect_memory(int* mem, int nBuffers, int nWorkers);
 
 #endif 
     
