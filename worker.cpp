@@ -45,6 +45,7 @@ int main(int argc, char** argv){
 		fprintf(stderr, "shmat failed: %s", strerror(errno)); 
 	}
 
+
 	// Begin read/write loop 
 	for(int i = 0; i < (3*nBuffers); i++){
 		// Get the buffer offset for accessing the shared memory segment
@@ -124,4 +125,11 @@ void error_check(int read1, int read2, int msgID, int offset, int workerID){
 			j++;
 		}
 	}
+}
+
+void print_sem_stats(int semID, int sem_num){
+	struct semid_ds stats;
+	semctl(semID, sem_num, IPC_STAT, stats);
+	int sem_val = semctl(semID, sem_num, GETVAL, 0);
+	printf("Sem %d:\tval: %d", sem_num, sem_val);
 }

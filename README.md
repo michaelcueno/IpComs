@@ -19,7 +19,13 @@ and worker programs as human readable as possible and this is why you will find 
 
 # Bugs
 
-The nBuffers arg (arg1) to the master program needs to be a prime number. This is not checked and the program will not
+- The nBuffers arg (arg1) to the master program needs to be a prime number. This is not checked and the program will not
 work correctly if it is not prime. 
+
+- The program halts when nWorkers is greater than or equal to 11 and semaphores are not used. I believe this is because the 
+message queue is reaching it's maximum. When semaphors are used, there are less messages sent (no race conditions) and thus 
+it succeeds. I could have gotten around this by setting up a wait and signal mechanism between the master and the worker process
+where the worker would signal upon each message send so that the master could read the messages out of the queue instead of 
+waiting for all messages to be sent to read. Unfortunately, I realized this bug to late. 
 
 ### copyright @ 2013 Michael Cueno | mcueno2@uic.edu 

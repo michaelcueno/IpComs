@@ -125,8 +125,7 @@ void fill_rand_sorted_ints(int *nums, int count, int randSeed, int sleepMin, int
 		close(pipe1[READ]); close(pipe2[WRITE]);    		// Close pipe1[write] to finish child process
 		srand(randSeed); 									// Set random seed 
 		for(int i=0; i < count; i++){
-			int num = (int)(sleepMax - sleepMin + 1)*((int)rand()/RAND_MAX) + sleepMin;
-			num = 
+			int num = (rand() % (sleepMax + 1 - sleepMin)) + sleepMin;
 			fprintf(to_sort, "%d\n", num);
 		}
 		fclose(to_sort);
@@ -262,11 +261,12 @@ int launch_worker(int workerID, int nBuffers, int sleepTime, int msgID, int shmI
 
 void wait_for(int* pid, int count){
     for(int i=0; i<count; i++){
-    int status;
-    struct rusage usage;
-    if(wait4(pid[i], &status, 0, &usage)<0)
-      perror("Couldn't wait for child: "); 
-  }
+	    int status;
+	    struct rusage usage;
+	    if(wait4(pid[i], &status, 0, &usage)<0){
+	      perror("Couldn't wait for child: "); 
+		}
+	}
 }
 
 void print_memory(int* mem, int nBuffers){

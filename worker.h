@@ -29,5 +29,8 @@ bool write_to_msg(int msgID, char* buf);
 	the message queue specified by @param msgID */
 void error_check(int read1, int read2, int msgID, int offset, int workerID);
 
+/** Testing purposes, prints sem value specified by @param sem_num */
+void print_sem_stats(int semID, int sem_num);
+
 #endif 
     
