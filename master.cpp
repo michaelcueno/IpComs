@@ -1,7 +1,11 @@
-/** 
-  * Master delcarations file 
-  * Copyright: Michael Cueno @ 2013 (mcueno)
-  */
+/**
+ * Michael Cueno 
+ * UIN: 676808583
+ * Contact: mcueno2@uic.edu
+ *
+ * This file contains the master program. For more description, see master.h 
+ *
+ */
 #include "master.h"
 
 /** command line args: nBuffers nWorkers sleepMin sleepMax [randSeed] [-lock | -nolock] 
@@ -17,15 +21,15 @@ int main(int argc, char** argv){
 	int randSeed; 			// optional, seeds random num generator, if not specified, generator supplied with time(NULL)
 	bool lock;     							// lock turns on semaphores, default is -nolock (w/out semaphors)
 	error_check_and_parse(argc, argv, &randSeed, &lock);
-	int nBuffers = atoi(argv[1]); 			// must be positive prime! 
+	int nBuffers = atoi(argv[1]); 			// must be positive prime! not checked!
 	int nWorkers = atoi(argv[2]); 			// number of child processes that exec worker, must be < nBuffers
 	int sleepMin = atoi(argv[3]); 			//
 	int sleepMax = atoi(argv[4]); 			// positive reals, max > min, define range of sleep times for worker processes
 	int sleepTimes[nWorkers];
 	int* mem = NULL;			 			// Array of ints for shared memory 
 	int semID = -1;							// Will hold the id of the allocated semaphore set. Init to -1 to indicate -nolock for worker 
-	unsigned short int sem_array[nBuffers]; // For setting the semaphores to 1 
 	int sem_value; 
+	int pids[nWorkers];						// Holds the pids of the forked worker processes 
 
 	// nWorkers < nBuffers check
 	if(nWorkers >= nBuffers){
@@ -33,40 +37,16 @@ int main(int argc, char** argv){
 		exit(-1);
 	}
 
-	// Init semaphores 
-	if(lock){
-		if((semID = semget(IPC_PRIVATE, nBuffers, IPC_CREAT | 0660 ))<0){
-			fprintf(stderr, "Could not allocate semaphores: %s", strerror( errno ));
-		}
-		
-		// Init to 1's
-		semun init_arr;
-		for(int i=0; i<nBuffers; i++){
-			sem_array[i] = 1;
-		}
-		init_arr.array = sem_array;
-
-		// Set kernal data 
-		if(semctl(semID, 0, SETALL, init_arr)<0){
-			fprintf(stderr, "Error with semaphores set: %s\n", strerror( errno ));
-		}
-
-		/* Print info about sems
-		semun stats;
-		if(semctl(semID, 0, IPC_STAT, stats)<0){
-			fprintf(stderr, "Error with semaphores stats: %s\n", strerror( errno ));
-		}*/
-		
-	}
+	if(lock) semID = init_semaphores(nBuffers);
 
 	fill_rand_sorted_ints(sleepTimes, nWorkers, randSeed, sleepMin, sleepMax);
 
 	int msgID = create_message_queue();
 
 	int shmID = create_shared_memory(nBuffers);
+
 	init_shared_memory(&mem, shmID, nBuffers);
 
-	int pids[nWorkers];
 	fork_workers(pids, nBuffers, nWorkers, sleepTimes, msgID, shmID, semID); 
 
 	wait_for(pids, nWorkers); 
@@ -76,45 +56,8 @@ int main(int argc, char** argv){
 	inspect_memory(mem, nBuffers, nWorkers); 
 
 	clean_up(msgID, shmID, semID, lock); 
-}
-	
-void fill_rand_sorted_ints(int *nums, int count, int randSeed, int sleepMin, int sleepMax){
-	// Create two pipes, pipe1 and pipe2
-	int pipe1[2]; int pipe2[2];
- 	if( (pipe(pipe1)<0) || (pipe(pipe2)<0) ){ fprintf(stderr, "Could not create pipe!\n"); exit(0); }
 
- 	switch(fork()){
-	case -1: 
-		fprintf(stderr, "Could not fork child!\n"); exit(0);
-	case CHILD:
-		// Set up pipes such that we read from the parent via pipe1 and write to the parent via pipe2
-		close(pipe1[WRITE]); close(pipe2[READ]);
-		dup2(pipe1[READ], READ); dup2(pipe2[WRITE], WRITE);
-		close(pipe1[READ]); close(pipe2[WRITE]);
-
-		if(execlp( "sort", "sort", "-nr", NULL )){ 			// Child executes 'sort -nr' 
-			fprintf(stderr, "Child should not have returned! Something went wrong in execvp\n"); 
-			exit(0); 
-		}
-	default: 
-		FILE* to_sort = fdopen(pipe1[WRITE], "w");			// Open pipe for writing 
-		dup2(pipe2[READ], READ);
-		close(pipe1[READ]); close(pipe2[WRITE]);    		// Close pipe1[write] to finish child process
-		srand(randSeed); 									// Set random seed 
-		for(int i=0; i < count; i++){
-			int num = (int)(sleepMax - sleepMin + 1)*((double)rand()/RAND_MAX) + sleepMin;
-			num = 
-			fprintf(to_sort, "%d\n", num);
-		}
-		fclose(to_sort);
-
-		int size = (int)log10(INT_MAX)+3;   				// Number of digits in INT_MAX plus room for truncation + newline
-		char buf[10];
-		for(int i = 0; i<count; i++){
-			fgets(buf, size, stdin);
-			nums[i] = atoi(buf); 
-		}
-	} 
+	return 0;
 }
 
 void error_check_and_parse(int argc, char** argv, int* randSeed, bool* lock ){
@@ -155,6 +98,66 @@ void error_check_and_parse(int argc, char** argv, int* randSeed, bool* lock ){
 		}
 	}
 }
+
+void fill_rand_sorted_ints(int *nums, int count, int randSeed, int sleepMin, int sleepMax){
+	// Create two pipes, pipe1 and pipe2
+	int pipe1[2]; int pipe2[2];
+ 	if( (pipe(pipe1)<0) || (pipe(pipe2)<0) ){ fprintf(stderr, "Could not create pipe!\n"); exit(0); }
+
+ 	switch(fork()){
+	case -1: 
+		fprintf(stderr, "Could not fork child!\n"); exit(0);
+	case CHILD:
+		// Set up pipes such that we read from the parent via pipe1 and write to the parent via pipe2
+		close(pipe1[WRITE]); close(pipe2[READ]);
+		dup2(pipe1[READ], READ); dup2(pipe2[WRITE], WRITE);
+		close(pipe1[READ]); close(pipe2[WRITE]);
+
+		if(execlp( "sort", "sort", "-nr", NULL )){ 			// Child executes 'sort -nr' 
+			fprintf(stderr, "Child should not have returned! Something went wrong in execvp\n"); 
+			exit(0); 
+		}
+	default: 
+		FILE* to_sort = fdopen(pipe1[WRITE], "w");			// Open pipe for writing 
+		dup2(pipe2[READ], READ);
+		close(pipe1[READ]); close(pipe2[WRITE]);    		// Close pipe1[write] to finish child process
+		srand(randSeed); 									// Set random seed 
+		for(int i=0; i < count; i++){
+			int num = (int)(sleepMax - sleepMin + 1)*((double)rand()/RAND_MAX) + sleepMin;
+			num = 
+			fprintf(to_sort, "%d\n", num);
+		}
+		fclose(to_sort);
+
+		int size = (int)log10(INT_MAX)+3;   				// Number of digits in INT_MAX plus room for truncation + newline
+		char buf[size];
+		for(int i = 0; i<count; i++){
+			fgets(buf, size, stdin);
+			nums[i] = atoi(buf); 
+		}
+	} 
+}
+
+int init_semaphores(int nBuffers){
+	unsigned short int sem_array[nBuffers]; // For setting the semaphores to 1 
+	int semID;
+	if((semID = semget(IPC_PRIVATE, nBuffers, IPC_CREAT | 0660 ))<0){
+		fprintf(stderr, "Could not allocate semaphores: %s", strerror( errno ));
+	}
+	// Init to 1's
+	semun init_arr;
+	for(int i=0; i<nBuffers; i++){
+		sem_array[i] = 1;
+	}
+	init_arr.array = sem_array;
+
+	// Set kernal data 
+	if(semctl(semID, 0, SETALL, init_arr)<0){
+		fprintf(stderr, "Error with semaphores set: %s\n", strerror( errno ));
+	}
+	return semID;
+}
+
 
 int create_message_queue(){
 	int id = msgget( IPC_PRIVATE, IPC_CREAT | 0600);
