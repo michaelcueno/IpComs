@@ -14,7 +14,7 @@
 * msgID/shmID/semID: id for message queue, shared memory block, and semaphore block respectively
 */
 int main(int argc, char** argv){
-								// Initializations 
+										// Initializations 
 	int read1;							// For storing read operations 
 	int read2; 
 	int read3; 
@@ -60,12 +60,7 @@ int main(int argc, char** argv){
 			read1 = *(mem + offset);								// read operation using pointer arithmetic 
 			usleep(sleepTime); 										
 			read2 = *(mem + offset);
-																	// Error Check 
-			if(read1 != read2){
-				char buf[CONT_MAX]; 
-				sprintf(buf, "RACE COND READ ERROR: Worker %d in buffer %d. initial: %d final: %d", workerID, offset, read1, read2);
-				write_to_msg(msgID, buf); 
-			}
+			error_check(read1, read2, msgID, offset, workerID);
 		}else{														// Write operation 
 			read3 = *(mem + offset); 
 			usleep(sleepTime);
@@ -107,4 +102,26 @@ bool write_to_msg(int msgID, char* buf){
 		perror("Message Send failure: ");
 		exit(-1); 
 	} 
+}
+
+void error_check(int read1, int read2, int msgID, int offset, int workerID){
+	char buf[CONT_MAX]; 
+	int result; 							// Will hold the bitwise difference 
+	int	mask = 1;			 				// For getting the least significant bit
+	int is_offender; 						// For determining what worker messed with the buffer in a race condition
+
+	result = read1 ^ read2;  		 		// Bitwise or 
+	if(result != 0){						// If result == 0 then buffer had no write errors 
+		int j = 0;
+		while(result){						// DANGER! Infinite loop if msb == 1
+			if(j!=0)result = result >> 1;	// Shift over (Get next worker) (Dont shift if this is the first iteration)
+			is_offender = mask & result; 	// Lets get the lsb
+			if(is_offender){
+				sprintf(buf, "RACE COND READ ERROR: Worker %d in buffer %d. initial: %d final: %d corrupted by: %d",
+														 workerID,    offset,       read1,    read2,    		 j);
+				write_to_msg(msgID, buf);	 
+			}
+			j++;
+		}
+	}
 }

@@ -27,7 +27,7 @@ bool write_to_msg(int msgID, char* buf);
 /** Used to check for read differences in the circular reading step 
 	If an error is found (first != second) then this function writes a read error message to 
 	the message queue specified by @param msgID */
-void error_check(int first, int second, int msgID); 
+void error_check(int read1, int read2, int msgID, int offset, int workerID);
 
 #endif 
     
