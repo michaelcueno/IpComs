@@ -125,7 +125,7 @@ void fill_rand_sorted_ints(int *nums, int count, int randSeed, int sleepMin, int
 		close(pipe1[READ]); close(pipe2[WRITE]);    		// Close pipe1[write] to finish child process
 		srand(randSeed); 									// Set random seed 
 		for(int i=0; i < count; i++){
-			int num = (int)(sleepMax - sleepMin + 1)*((double)rand()/RAND_MAX) + sleepMin;
+			int num = (int)(sleepMax - sleepMin + 1)*((int)rand()/RAND_MAX) + sleepMin;
 			num = 
 			fprintf(to_sort, "%d\n", num);
 		}
